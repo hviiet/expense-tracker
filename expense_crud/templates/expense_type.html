@@ -1,0 +1,268 @@
+{% extends 'index.html' %}
+{% block title %}Quản lí loại thu nhập/Chi tiêu{% endblock %}
+{% block content %}
+<!-- Modal -->
+<div class="modal fade" id="actionModal" tabindex="-1" role="dialog" aria-labelledby="actionModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="actionModalLabel"></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="name">Tên</label>
+                    <input type="text" class="form-control" id="name">
+                </div>
+                <div class="form-group">
+                    <label for="description">Mô tả</label>
+                    <textarea class="form-control" id="description" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="saveButton">Lưu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Loại thu nhập</h3>
+            </div>
+
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Tên</th>
+                            <th>Mô tả</th>
+                            <th style="width: 40px">Sửa</th>
+                            <th style="width: 40px">Xóa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in income_types %}
+                        <tr>
+                            
+                            <td>{{item.name}}</td>
+                            <td>{{item.description}}</td>
+                            <td>
+                                <button type="button" class="btn btn-primary btn-sm edit-income-type-btn" 
+                                    data-id="{{ item.id }}">Sửa</button>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-danger btn-sm delete-income-type-btn" 
+                                    data-id="{{ item.id }}"
+                                    >Xóa</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer clearfix">
+                <button type="button" class="btn btn-primary float-right" id="add-income-type-btn">Thêm loại thu
+                    nhập</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Loại chi tiêu</h3>
+            </div>
+
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Tên</th>
+                            <th>Mô tả</th>
+                            <th style="width: 40px">Sửa</th>
+                            <th style="width: 40px">Xóa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in expense_types %}
+                        <tr>
+                            <td>{{item.name}}</td>
+                            <td>{{item.description}}</td>
+                            <td>
+                                <button type="button" class="btn btn-primary btn-sm edit-expense-type-btn" 
+                                    data-id="{{ item.id }}">Sửa</button>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-danger btn-sm delete-expense-type-btn" data-id="{{ item.id }}">Xóa</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer clearfix">
+                <button type="button" class="btn btn-primary float-right" id="add-expense-type-btn">Thêm loại chi
+                    tiêu</button>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block page_script %}
+<script>
+    let currentId;
+
+    $('#add-income-type-btn').click(function () {
+        $('#actionModalLabel').text('Thêm loại thu nhập')
+        $('#name').val('');
+        $('#description').val('');
+        $('#actionModal').modal('show')
+    });
+
+    $('#add-expense-type-btn').click(function () {
+        $('#actionModalLabel').text('Thêm loại chi tiêu')
+        $('#name').val('');
+        $('#description').val('');
+        $('#actionModal').modal('show')
+    });
+
+    $('.edit-income-type-btn').click(function () {
+        $('#actionModalLabel').text('Sửa loại thu nhập')
+        currentId = $(this).data('id');
+        fetch(`/type/edit/?current_id=${currentId}&current_type=income`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+        }).then(response => {
+            return response.json();
+        }).then(data => {
+            $('#name').val(data.name);
+            $('#description').val(data.description);
+            $('#actionModal').modal('show')
+        });
+    });
+
+    $('.edit-expense-type-btn').click(function () {
+        $('#actionModalLabel').text('Sửa loại chi tiêu')
+        currentId = $(this).data('id');
+        fetch(`/type/edit/?current_id=${currentId}&current_type=expense`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+        }).then(response => {
+            return response.json();
+        }).then(data => {
+            $('#name').val(data.name);
+            $('#description').val(data.description);
+            $('#actionModal').modal('show')
+        });
+    });
+
+    $('.delete-income-type-btn').click(function () {
+        currentId = $(this).data('id');
+        Swal.fire({
+            title: 'Bạn có chắc chắn muốn xóa loại thu nhập này?',
+            text: "Dữ liệu sẽ không thể khôi phục!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/type/delete/?current_id=${currentId}&current_type=income`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                }).then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    }
+                });
+            }
+        });
+    });
+
+    $('.delete-expense-type-btn').click(function () {
+        currentId = $(this).data('id');
+        Swal.fire({
+            title: 'Bạn có chắc chắn muốn xóa loại chi tiêu này?',
+            text: "Dữ liệu sẽ không thể khôi phục!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/type/delete/?current_id=${currentId}&current_type=expense`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                }).then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    }
+                });
+            }
+        });
+    });
+
+    $('#saveButton').click(function () {
+        let modelLabel = $('#actionModalLabel').text()
+        let current_type;
+        let current_action;
+        let temp = modelLabel.split(' ');
+        if (temp[0] === 'Thêm') {
+            current_action = 'ADD';
+        } else if (temp[0] === 'Sửa') {
+            current_action = 'EDIT';
+        }
+        if (temp[2] === 'thu') {
+            current_type = 'income';
+        } else if (temp[2] === 'chi') {
+            current_type = 'expense';
+        }
+        console.log(current_type, current_action);
+        let formData = new FormData();
+        if (current_action === 'EDIT') {
+            formData.append('current_id', currentId);
+        }
+        formData.append('current_type', current_type);
+        formData.append('name', $('#name').val());
+        formData.append('description', $('#description').val());
+        let url = '/type/';
+        if (current_action === 'EDIT') {
+            url += 'edit/';
+        }
+        fetch(url, {
+            method: "POST",
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: formData,
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    });
+</script>
+{% endblock %}
