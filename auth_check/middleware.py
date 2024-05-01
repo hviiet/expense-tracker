@@ -5,7 +5,7 @@ class AuthMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
     def __call__(self, request):
-        if request.path in ['/login/', '/register/', '/logout/']:
+        if request.path in ['/login', '/register', '/logout', '/login/', '/register/', '/logout/']:
             response = self.get_response(request)
             return response
         cookie_name = 'cookie'
