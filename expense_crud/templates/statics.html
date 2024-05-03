@@ -1,0 +1,240 @@
+{% extends 'index.html' %}
+{% block title %}{% endblock %}
+{% load humanize %}
+{% block content %}
+<div class="card">
+  <div class="card-footer">
+    <div class="row">
+      <div class="col-6">
+        <div class="description-block border-right">
+          <h5 class="description-header">{{ total_income|floatformat:"0"|intcomma }}</h5>
+          <span class="description-text">Tổng thu nhập</span>
+        </div>
+      </div>
+      <!-- /.col -->
+      <div class="col-6">
+        <div class="description-block">
+          <h5 class="description-header">{{ total_expense|floatformat:"0"|intcomma }}</h5>
+          <span class="description-text">Tổng chi tiêu</span>
+        </div>
+      </div>
+      <!-- /.col -->
+    </div>
+    <!-- /.row -->
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Thống kê thu nhập/chi tiêu trong 6 tháng gần nhất</h3>
+    <div class="card-tools">
+      <button type="button" class="btn btn-tool" data-card-widget="collapse">
+        <i class="fas fa-minus"></i>
+      </button>
+      <!-- <button type="button" class="btn btn-tool" data-card-widget="remove">
+        <i class="fas fa-times"></i>
+      </button> -->
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="chart">
+      <div class="chartjs-size-monitor">
+        <div class="chartjs-size-monitor-expand">
+          <div class=""></div>
+        </div>
+        <div class="chartjs-size-monitor-shrink">
+          <div class=""></div>
+        </div>
+      </div>
+      <canvas id="barChart"
+        style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%; display: block; width: 386px;"
+        width="386" height="250" class="chartjs-render-monitor"></canvas>
+    </div>
+  </div>
+  <!-- /.card-body -->
+
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Chi tiết</h3>
+    <div class="card-tools">
+      <button type="button" class="btn btn-tool" data-card-widget="collapse">
+        <i class="fas fa-minus"></i>
+      </button>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-sm-12 col-md-6">
+        <canvas id="incomePieChart"
+          style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%; display: block; width: 386px;"
+          width="386" height="250" class="chartjs-render-monitor"></canvas>
+      </div>
+      <div class="col-sm-12 col-md-6">
+        <canvas id="expensePieChart"
+          style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%; display: block; width: 386px;"
+          width="386" height="250" class="chartjs-render-monitor"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_script %}
+<!-- Double Bar Chart -->
+<script>
+  let income_data = '{{ income_data }}'.split('/').map(Number);
+  let expense_data = '{{ expense_data }}'.split('/').map(Number);
+  var areaChartData = {
+    labels: '{{ month_labels }}'.split('/'),
+    datasets: [
+      {
+        label: 'Chi tiêu',
+        backgroundColor: 'rgba(84,245, 185,0.9)',
+        borderColor: 'rgba(210, 214, 222, 1)',
+        pointRadius: false,
+        pointColor: 'rgba(210, 214, 222, 1)',
+        pointStrokeColor: '#c1c7d1',
+        pointHighlightFill: '#fff',
+        pointHighlightStroke: 'rgba(220,220,220,1)',
+        data: expense_data
+      },
+      {
+        label: 'Thu nhập',
+        backgroundColor: 'rgba(111,190, 255,0.9)',
+        borderColor: 'rgba(60,141,188,0.8)',
+        pointRadius: false,
+        pointColor: '#3b8bba',
+        pointStrokeColor: 'rgba(60,141,188,1)',
+        pointHighlightFill: '#fff',
+        pointHighlightStroke: 'rgba(60,141,188,1)',
+        data: income_data
+
+      },
+    ]
+  }
+  //-------------
+  //- BAR CHART -
+  //-------------
+  var barChartCanvas = $('#barChart').get(0).getContext('2d')
+  var barChartData = $.extend(true, {}, areaChartData)
+  var temp0 = areaChartData.datasets[0]
+  var temp1 = areaChartData.datasets[1]
+  barChartData.datasets[0] = temp1
+  barChartData.datasets[1] = temp0
+
+  var barChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    datasetFill: false,
+    tooltips: {
+      callbacks: {
+        label: function (tooltipItem, data) {
+          let value = tooltipItem.yLabel;
+          value = value.toString();
+          value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          return value;
+        }
+      }
+    },
+    scales: {
+      yAxes: [{
+        ticks: {
+          beginAtZero: true,
+          userCallback: function (value, index, values) {
+            value = value.toString();
+            value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+            return value;
+          }
+        }
+      }],
+      xAxes: [{
+        ticks: {
+        }
+      }]
+    }
+  }
+
+  new Chart(barChartCanvas, {
+    type: 'bar',
+    data: barChartData,
+    options: barChartOptions
+  })
+</script>
+<!-- Pie Chart -->
+<script>
+  function getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+  }
+  const expense_pie_data = {
+    labels: '{{ expense_pie_labels }}'.split('/'),
+    datasets: [
+      {
+        data: '{{ expense_pie_values }}'.split('/').map(Number),
+        backgroundColor: Array.from({length: '{{ expense_pie_values }}'.split('/').length}, () => getRandomColor()),
+        // backgroundColor: ['#f56954', '#00a65a', '#f39c12', '#00c0ef', '#3c8dbc', '#d2d6de'],
+      }
+    ]
+  }
+  const income_pie_data = {
+    labels: '{{ income_pie_labels }}'.split('/'),
+    datasets: [
+      {
+        data: '{{ income_pie_values }}'.split('/').map(Number),
+        backgroundColor: Array.from({length: '{{ expense_pie_values }}'.split('/').length}, () => getRandomColor()),
+        // backgroundColor: ['#f56954', '#00a65a', '#f39c12', '#00c0ef', '#3c8dbc', '#d2d6de'],
+      }
+    ]
+  }
+  //-------------
+  //- PIE CHART -
+  //-------------
+  let incomePieOptions = {
+    maintainAspectRatio: false,
+    responsive: true,
+    tooltips: {
+      callbacks: {
+        label: function (tooltipItem, data) {
+          let value = income_pie_data.datasets[0].data[tooltipItem.index];
+          value = value.toString();
+          value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          return value;
+        }
+      }
+    },
+  }
+  let expensePieOptions = {
+    maintainAspectRatio: false,
+    responsive: true,
+    tooltips: {
+      callbacks: {
+        label: function (tooltipItem, data) {
+          let value = expense_pie_data.datasets[0].data[tooltipItem.index];
+          value = value.toString();
+          value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          return value;
+        }
+      }
+    },
+  }
+  let incomeChartCanvas = $('#incomePieChart').get(0).getContext('2d');
+  new Chart(incomeChartCanvas, {
+    type: 'pie',
+    data: income_pie_data,
+    options: incomePieOptions
+  });
+  let expenseChartCanvas = $('#expensePieChart').get(0).getContext('2d');
+  new Chart(expenseChartCanvas, {
+    type: 'pie',
+    data: expense_pie_data,
+    options: expensePieOptions
+  });
+
+</script>
+{% endblock %}

@@ -1,21 +1,13 @@
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponseRedirect, HttpResponseBadRequest
-from .models import ExpenseType, IncomeType, User
+from ..models import ExpenseType, IncomeType, User
 
-def index(request):
-    return render(request, 'index.html', {
-        'user': request.user
-    })
-
-def expense_type(request):
+def types(request):
     user = request.user
     if request.method == 'GET':
-        i_page = request.GET.get('i_page', 1)
-        e_page = request.GET.get('e_page', 1)
-
-        income_types = IncomeType.objects.all()
-        expense_types = ExpenseType.objects.all()
-        return render(request, 'expense_type.html', {
+        income_types = IncomeType.objects.filter(user=user)
+        expense_types = ExpenseType.objects.filter(user=user)
+        return render(request, 'types.html', {
             'user': user,
             'income_types': income_types,
             'expense_types': expense_types
@@ -24,6 +16,8 @@ def expense_type(request):
         current_type = request.POST['current_type']
         name = request.POST['name']
         description = request.POST['description']
+        if name == '':
+            return HttpResponseBadRequest()
         if current_type == 'income':
             incomeType = IncomeType(name=name, description=description, user=user)
             incomeType.save()
@@ -32,8 +26,9 @@ def expense_type(request):
             expenseType = ExpenseType(name=name, description=description, user=user)
             expenseType.save()
             return JsonResponse({'message': 'Thêm thành công'})
+        return HttpResponseBadRequest()
 
-def expense_type_edit(request):
+def types_edit(request):
     if (request.method == 'GET'):
         current_id = request.GET.get('current_id', None)
         current_type = request.GET.get('current_type', None)
@@ -69,7 +64,7 @@ def expense_type_edit(request):
             return JsonResponse({'message': 'Sửa thành công'})
         return HttpResponseBadRequest()
 
-def expense_type_delete(request):
+def types_delete(request):
     if (request.method == 'GET'):
         current_id = request.GET.get('current_id', None)
         current_type = request.GET.get('current_type', None)
