@@ -1,5 +1,5 @@
 from django.urls import path
-from .view import views, types_view, income_view, expense_view
+from .view import views, types_view, income_view, expense_view, bill_sharing_view
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -13,5 +13,6 @@ urlpatterns = [
     path('income/delete/', income_view.income_delete, name='income_delete'),
     path('type/', types_view.types, name='types'),
     path('type/edit/', types_view.types_edit, name='types_edit'),
-    path('type/delete/', types_view.types_delete, name='types_delete')
+    path('type/delete/', types_view.types_delete, name='types_delete'),
+    path('share/', bill_sharing_view.bill_sharing, name='bill_sharing')
 ]
