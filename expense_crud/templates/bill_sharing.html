@@ -1,0 +1,408 @@
+{% extends 'index.html' %}
+{% block title %}Tính tiền nhóm{% endblock %}
+{% block content %}
+<div class="card">
+    <div id="participants-details">
+        <div class="card-header">
+            <h2 class="card-title">Những người tham gia hóa đơn này</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-5">
+                    <div class="form-group">
+                        <label>Thêm người tham gia</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">
+                                    <i class="far fa-user"></i>
+                                </span>
+                            </div>
+                            <input type="text" class="form-control float-right" placeholder="VD: An"
+                                id="participant-input">
+                            <span class="input-group-append">
+                                <button id="add-participant-btn" type="button"
+                                    class="btn btn-info btn-flat">Thêm</button>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-7">
+                    <div class="form-group">
+                        <label>Những người tham gia</label>
+                        <div class="form-control" id="participants"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="bill-details" class="d-none">
+        <div class="card-header">
+            <h2 class="card-title">Thêm chi tiết hóa đơn</h2>
+            <button id="new-bill-btn" type="button" class="btn btn-primary ml-2 float-right">
+                <i class="fas fa-plus"></i>
+                Thêm hóa đơn
+            </button>
+        </div>
+        <div class="card-body" id="bill-form"></div>
+    </div>
+    <div class="card-footer" id="crd-footer">
+        <button type="" id="next-btn" class="btn btn-primary disabled">Tiếp theo</button>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block page_script %}
+<script>
+    let participantInput = "";
+    let addParticipantBtn = "";
+    let participantsSlots = ""
+    let participants = [];
+    let billDetailsSec = ""
+    let participantsDetailsSec = ""
+    let billCount = 0
+    let payerAdd = ""
+    let payInfos = {};
+    let participateInfos = {};
+    $(document).ready(function () {
+        participantInput = $('#participant-input');
+        addParticipantBtn = $('#add-participant-btn');
+        participantsSlots = $('#participants');
+        billDetailsSec = $('#bill-details');
+        participantsDetailsSec = $('#participants-details');
+        payerAdd = $('#payer-add');
+        $(document).on('click', '#add-participant-btn', addParticipant);
+        $(document).on('click', '.name-holder', removeParticipant);
+        $(document).on('click', '#next-btn', enableBillDetail);
+        $(document).on('click', '#new-bill-btn', renderNewBillForm);
+        $(document).on('click', '.bill-participants-select', updateParticipantsState);
+        $(document).on('click', '.add-payer', addPayer);
+        $(document).on('click', '.remove-payer', function () {
+            let div = $(this).parent().parent();
+            let billId = $(this).attr('data');
+            let index = $(div).index();
+            removePayer(div, billId, index);
+        });
+        $(document).on('click', '.bill-delete-btn', function () {
+            let billID = $(this).attr('data');
+            removeBill(billID);
+        });
+        $(document).on('change', '.bill-payer-input', function () {
+            let billId = $(this).attr('data');
+            updatePayer(billId)
+        });
+        $(document).on('change', '.bill-amount-input', function () {
+            let billId = $(this).attr('data');
+            updatePayer(billId)
+        });
+    });
+
+    function moveCardFooter(mode = "FORWARD") {
+        if (mode === "FORWARD") {
+            // move the card-footer and change to main-footer but keep it shown at the bottom
+            $('#crd-footer').removeClass('card-footer');
+            $('#crd-footer').addClass('main-footer');
+            // additonal class to make it shown at the bottom
+            $('#crd-footer').addClass('fixed-bottom');
+        } else {
+            // move the card-footer and change to main-footer but keep it shown at the bottom
+            $('#crd-footer').removeClass('main-footer');
+            $('#crd-footer').addClass('card-footer');
+            // additonal class to make it shown at the bottom
+            $('#crd-footer').removeClass('fixed-bottom');
+        }
+    }
+
+    function updatePayer(billId) {
+        let payerInfosDiv = $(`.payer-infos[data=${billId}]`);
+        let payerInputs = $(payerInfosDiv).find('.bill-payer-input');
+        let amountInputs = $(payerInfosDiv).find('.bill-amount-input');
+        let names = []
+        let amounts = []
+        payerInputs.each(function (index, element) {
+            names.push($(element).val());
+        });
+        amountInputs.each(function (index, element) {
+            amounts.push(parseInt($(element).val()));
+        });
+        payInfos[billId] = [names, amounts];
+        updateVisualResult();
+    }
+
+    function removeBill(billID) {
+        $(`.bill[data=${billID}]`).remove();
+        delete payInfos[billID];
+        delete participateInfos[billID];
+        updateVisualResult();
+    }
+
+    function update() {
+        if (participants.length === 0) {
+            // remove class h-auto from participantsSlots
+            participantsSlots.removeClass('h-auto');
+        } else {
+            if (!participantsSlots.hasClass('h-auto')) {
+                participantsSlots.addClass('h-auto');
+            }
+        }
+        nextStepValidate();
+    }
+
+    function addParticipant() {
+        newParticipant = textStandardize(participantInput.val());
+        if (newParticipant === "") {
+            return false;
+        }
+
+        if (participants.includes(newParticipant)) {
+            return true;
+        }
+
+        participants.push(newParticipant);
+        participantInput.val("");
+
+        participantsSlots.append(`<button type="submit" class="btn btn-primary m-1 name-holder">${newParticipant}<span>  <i class="fas fa-times"></i></span></button>`);
+        update();
+        return true;
+    }
+
+    function removeParticipant() {
+        let participant = $(this).text();
+        participant = textStandardize(participant);
+        participants = participants.filter(function (value, index, arr) {
+            return value !== participant;
+        });
+        $(this).remove();
+        update();
+    }
+
+    function updateParticipantsState() {
+        // get (this)
+        let participant = $(this);
+        const billId = participant.attr('data');
+        if (participant.hasClass('btn-primary')) {
+            participant.removeClass('btn-primary');
+            participant.addClass('btn-danger');
+            participant.find('i').removeClass('fa-check');
+            participant.find('i').addClass('fa-times');
+            participateInfos[billId] = participateInfos[billId].filter(function (value, index, arr) {
+                return value !== textStandardize(participant.text());
+            });
+        } else {
+            participant.removeClass('btn-danger');
+            participant.addClass('btn-primary');
+            participant.find('i').removeClass('fa-times');
+            participant.find('i').addClass('fa-check');
+            participateInfos[billId].push(textStandardize(participant.text()));
+        }
+        updateVisualResult();
+    }
+
+    function textStandardize(text) {
+        text = text.replace(/[\n\t\r]/g, "");
+        return text.trim().toUpperCase();
+    }
+
+    function getPayerOptions() {
+        let options = "";
+        participants.forEach(function (participant) {
+            options += `<option value="${participant}">${participant}</option>`;
+        });
+        return options;
+    }
+
+    function getParticipantOptions() {
+        let options = "";
+        participants.forEach(function (participant) {
+            options += `<button class="btn btn-danger m-1 bill-participants-select" data=${billCount}>${participant}
+                <i class="fas fa-times"></i>
+                </button>`;
+        });
+        return options;
+    }
+
+    function nextStepValidate() {
+        if (participants.length < 2) {
+            if (!$("#next-btn").hasClass('disabled')) {
+                $("#next-btn").addClass('disabled');
+                return;
+            }
+            return;
+        }
+        $("#next-btn").removeClass('disabled');
+    }
+
+    function addPayer() {
+        const billId = $(this).attr('data');
+        const payerInfosDiv = $(".payer-infos[data=" + billId + "]");
+        $(payerInfosDiv).append(`
+            <div class="input-group row mb-2 payer-entry">
+                <div class="col-6">
+                    <select type="text" class="form-control float-right bill-payer-input" data=${billCount}>${getPayerOptions()}</select>
+                </div>
+                <div class="col-4"><input type="number" class="form-control float-right bill-amount-input" data=${billCount}
+                        placeholder="VD: 15000" value="0">
+                </div>
+                <div class="col-2">
+                    <button type="button" class="btn btn-danger float-right remove-payer" data=${billCount}>
+                        <i class="fas fa-times"></i>
+                    </button>
+            </div>`);
+        updatePayer(billId);
+    }
+
+    function enableBillDetail() {
+        billDetailsSec.removeClass('d-none');
+        participantsDetailsSec.addClass('d-none');
+        moveCardFooter();
+    }
+
+    function renderNewBillForm() {
+        billCount++;
+        $('#bill-form').append(`
+            <div class= "card card-primary bill" data=${billCount}>
+                <div class="card-header">
+                    <h3 class="card-title bill-title"><b>HÓA ĐƠN MỚI</b></h3>
+                    <button type="button" class="btn btn-danger ml-2 float-right bill-delete-btn " data=${billCount}>
+                        <i class="fas fa-times"></i>
+                        Xóa hóa đơn này
+                    </button>
+                </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label>Nội dung hóa đơn</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control float-right bill-title-input" placeholder="VD: Tiền nhà hàng">
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-5">
+                            <label class="mb-2">Người trả</label>
+                            <button type="button" class="btn btn-primary btn-sm float-right mb-2 add-payer" data=${billCount}
+                                id="payer-add">
+                                <i class="fas fa-plus"></i>
+                                Thêm người trả
+                            </button>
+                            <div class="payer-infos" data=${billCount}>
+                                <div class="input-group row mb-2">
+                                    <div class="col-6">
+                                        <select type="text" class="form-control float-right bill-payer-input" data=${billCount}>${getPayerOptions()}</select>
+                                    </div>
+                                    <div class="col-4"><input type="number" class="form-control float-right bill-amount-input"
+                                            placeholder="VD: 15000" value="0" data=${billCount}>
+                                    </div>
+                                    <div class="col-2">
+                                        <button type="button" class="btn btn-danger float-right disabled" data=${billCount}>
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-7">
+                            <label class="mb-3">Người tham gia</label>
+                            <div class="form-control h-auto" id="participants">${getParticipantOptions()}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`);
+        participateInfos[billCount] = [];
+        updatePayer(billCount);
+        console.log(participateInfos);
+    }
+
+    function totalByBill(billID) {
+        let total = 0;
+        let eachPerson = [];
+        for (let i = 0; i < participants.length; i++) {
+            eachPerson[participants[i]] = 0;
+        }
+
+        if (participateInfos[billID] === undefined) {
+            return {
+                "avg": 0,
+                "eachPerson": eachPerson
+            }
+        }
+
+        for (let i = 0; i < payInfos[billID][0].length; i++) {
+            let name = payInfos[billID][0][i];
+            let amount = payInfos[billID][1][i];
+            total += amount;
+            eachPerson[name] += amount;
+        }
+
+        let avg = 0;
+        try {
+            avg = total / participateInfos[billID].length;
+            participateInfos[billID].forEach(function (participant) {
+                eachPerson[participant] -= avg;
+            });
+        } catch (error) {
+            return {
+                "avg": 0,
+                "eachPerson": eachPerson
+            }
+        }
+        return {
+            "avg": avg,
+            "eachPerson": eachPerson
+        }
+    }
+
+    function eachPersonByBill() {
+        let balances = {};
+        for (let i = 0; i < participants.length; i++) {
+            balances[participants[i]] = 0;
+        }
+        for (let i = 1; i <= billCount; i++) {
+            let total = totalByBill(i);
+            let eachPerson = total["eachPerson"];
+            for (let j = 0; j < participants.length; j++) {
+                balances[participants[j]] += eachPerson[participants[j]];
+            }
+        }
+        return balances;
+    }
+
+    function calculate() {
+        return eachPersonByBill();
+    }
+
+    function generateResultCell(participant, result) {
+        if (result[participant] > 0)
+            return `<button class="btn m-1 btn-success">${participant}: <b>${result[participant]}</b></button>`;
+        if (result[participant] < 0)
+            return `<button class="btn m-1 btn-danger">${participant}: <b>${result[participant]}</b></button>`;
+        if (result[participant] === 0)
+            return `<button class="btn m-1 btn-primary">${participant}: <b>${result[participant]}</b></button>`;
+        return `<button class="btn m-1 btn-warning">${participant}: <b>?</b></button>`
+    }
+
+    function generateResult(result) {
+        let resultHTML = "";
+        participants.forEach(function (participant) {
+            resultHTML += generateResultCell(participant, result);
+        });
+        return resultHTML;
+    }
+
+    function updateVisualResult() {
+        const result = calculate();
+        // round
+        for (let i = 0; i < participants.length; i++) {
+            result[participants[i]] = Math.round(result[participants[i]]);
+        }
+        const resultDiv = document.getElementById('crd-footer');
+
+        resultDiv.innerHTML = generateResult(result);
+    }
+
+    function removePayer(div, billID, index) {
+        $(div).remove();
+        payInfos[billID][0].splice(index, 1);
+        payInfos[billID][1].splice(index, 1);
+        updateVisualResult();
+    }
+</script>
+{% endblock %}
