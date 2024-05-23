@@ -3,6 +3,7 @@ from django.http import JsonResponse, HttpResponseRedirect, HttpResponseBadReque
 from django.db.models import Q, Sum
 from ..models import ExpenseType, Expense
 from datetime import date, timedelta
+import pandas as pd
 
 def expense(request):
     user = request.user
@@ -71,6 +72,32 @@ def expense_add(request):
         expense = Expense(user=user, amount=amount, expense_type=expense_type, date=date_val, description=description)
         expense.save()
         return JsonResponse({'status': 'success'})
+
+def expense_add_excel(request):
+    user = request.user
+    if request.method == 'POST':
+        excel_file = request.FILES['excel']
+        df = pd.read_excel(excel_file)
+        error_count = 0
+        success_count = 0
+        for index, row in df.iterrows():
+            try:
+                amount = float(str(row['Chi tiêu']).replace(',', '').replace('.', ''))
+                type_name = row['Loại']
+                date_str = row['Thời gian'].split('-')
+                date_val = date(int(date_str[2]), int(date_str[1]), int(date_str[0]))
+                description = row['Mô tả'] if type(row['Mô tả']) is str else ''
+                expense_type = ExpenseType.objects.filter(user=user, name=type_name).first()
+                if not expense_type:
+                    expense_type = ExpenseType(user=user, name=type_name, description='')
+                    expense_type.save()
+                income = Expense(user=user, amount=amount, expense_type=expense_type, date=date_val, description=description)
+                income.save()
+                success_count += 1
+            except:
+                error_count += 1
+                continue
+        return JsonResponse({'status': 'success', 'error_count': error_count, 'success_count': success_count})
 
 def expense_edit(request):
     user = request.user

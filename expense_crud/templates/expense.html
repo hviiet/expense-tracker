@@ -48,9 +48,13 @@
         <button type="button" class="btn btn-primary ml-2 float-right" id="searchButton">
             Tìm kiếm
         </button>
-        <button type="button" class="btn btn-info float-right" id="addButton">
+        <button type="button" class="btn btn-info ml-2 float-right" id="addButton">
             Thêm chi tiêu mới
         </button>
+        <button type="button" class="btn btn-info float-right" id="addFromExcel">
+            Thêm thu nhập từ file excel
+        </button>
+        <input type="file" hidden name="excel" id="excelInput" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">        
     </div>
     <div class="card-body">
         <div class="row">
@@ -74,8 +78,8 @@
                     <label>Loại chi tiêu</label>
                     <select class="form-control select2" id="types_search" multiple style="width: 100%;">
                         {% for type in types %}
-                        <option value="{{ type.id }}" {% if type.id in types_search %} selected {% endif %}>{{ type.name
-                            }}</option>
+                        <option value="{{ type.id }}" {% if type.id in types_search %} selected {% endif %}>
+                            {{ type.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -93,93 +97,100 @@
             </button>
         </div>
     </div>
-    <div class="card-body">
-        <div id="example1_wrapper" class="dataTables_wrapper dt-bootstrap4">
-            <div class="row">
-                <div class="col-sm-12">
-                    <table id="example1" class="table table-bordered table-striped dataTable dtr-inline"
-                        aria-describedby="example1_info">
-                        <thead>
-                            <tr>
-                                <th class="font-weight-bold">Chi tiêu</th>
-                                <th class="font-weight-bold">Loại</th>
-                                <th class="font-weight-bold" style="width: 120px;">Thời gian</th>
-                                <th class="font-weight-bold">Mô tả</th>
-                                <th class="font-weight-bold" style="width: 50px;">Sửa</th>
-                                <th class="font-weight-bold" style="width: 50px;">Xóa</th>
-                            </tr>
-                        </thead>
-                        {% with expenses_count=expenses|length %}
-                        {% if expenses_count > 0 %}
-                        <tbody>
-                            {% load humanize %}
-                            {% for expense in expenses %}
-                            <tr>
-                                <td>{{ expense.amount|floatformat:"0"|intcomma }}</td>
-                                <td>{{ expense.expense_type.name }}</td>
-                                <td>{{ expense.date|date:"d-m-Y" }}</td>
-                                <td>{{ expense.description }}</td>
-                                <td>
-                                    <button type="button" class="btn btn-primary btn-sm edit-expense-btn"
-                                        data-id="{{ expense.id }}">Sửa</button>
-                                </td>
-                                <td>
-                                    <button type="button" class="btn btn-danger btn-sm delete-expense-btn"
-                                        data-id="{{ expense.id }}">Xóa</button>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <th class="font-weight-bold" colspan="6">
-                                    Tổng chi tiêu: {{ total_amount|floatformat:"0"|intcomma }}
-                                </th>
-                            </tr>
-                        </tfoot>
-                        {% else %}
-                        <tbody>
-                            <tr>
-                                <td colspan="6" class="text-center">Không có dữ liệu</td>
-                            </tr>
-                        </tbody>
-                        {% endif %}
-                        {% endwith %}
-                    </table>
+    {% with expenses_count=expenses|length %}
+        <div class="card-body">
+            <div id="example1_wrapper" class="dataTables_wrapper dt-bootstrap4">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <table id="example1" class="table table-bordered table-striped dataTable dtr-inline"
+                            aria-describedby="example1_info" data-cols-width="30,30,15,30">
+                            <thead>
+                                <tr data-b-a-s="true" data-height="25" data-b-a-s="medium">
+                                    <th class="font-weight-bold" data-f-bold="true" data-a-h="center" data-a-v="center">Chi tiêu</th>
+                                    <th class="font-weight-bold" data-f-bold="true" data-a-h="center" data-a-v="center">Loại</th>
+                                    <th class="font-weight-bold" style="width: 120px;" data-f-bold="true" data-a-h="center" data-a-v="center">Thời gian</th>
+                                    <th class="font-weight-bold" data-f-bold="true" data-a-h="center" data-a-v="center">Mô tả</th>
+                                    <th class="font-weight-bold" style="width: 50px;" data-exclude="true">Sửa</th>
+                                    <th class="font-weight-bold" style="width: 50px;" data-exclude="true">Xóa</th>
+                                </tr>
+                            </thead>
+                            {% if expenses_count > 0 %}
+                            <tbody>
+                                {% load humanize %}
+                                {% for expense in expenses %}
+                                <tr data-height="25">
+                                    <td data-a-h="center" data-a-v="center">{{ expense.amount|floatformat:"0"|intcomma }}</td>
+                                    <td data-a-h="center" data-a-v="center">{{ expense.expense_type.name }}</td>
+                                    <td data-a-h="center" data-a-v="center">{{ expense.date|date:"d-m-Y" }}</td>
+                                    <td data-a-h="center" data-a-v="center">{{ expense.description }}</td>
+                                    <td data-exclude="true">
+                                        <button type="button" class="btn btn-primary btn-sm edit-expense-btn"
+                                            data-id="{{ expense.id }}">Sửa</button>
+                                    </td>
+                                    <td data-exclude="true">
+                                        <button type="button" class="btn btn-danger btn-sm delete-expense-btn"
+                                            data-id="{{ expense.id }}">Xóa</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr data-height="25" data-exclude="true">
+                                    <th class="font-weight-bold" colspan="6" data-a-h="left" data-a-v="center">
+                                        Tổng chi tiêu: {{ total_amount|floatformat:"0"|intcomma }}
+                                    </th>
+                                </tr>
+                            </tfoot>
+                            {% else %}
+                            <tbody>
+                                <tr>
+                                    <td colspan="6" class="text-center">Không có dữ liệu</td>
+                                </tr>
+                            </tbody>
+                            {% endif %}
+                        </table>
+                    </div>
                 </div>
-            </div>
-            <div class="row" style="display: none;">
-                <div class="col-sm-12 col-md-5">
-                    <div class="dataTables_info" id="example1_info" role="status" aria-live="polite">Showing 1 to 10 of
-                        57 entries</div>
-                </div>
-                <div class="col-sm-12 col-md-7">
-                    <div class="dataTables_paginate paging_simple_numbers float-right" id="example1_paginate">
-                        <ul class="pagination">
-                            <li class="paginate_button page-item previous disabled" id="example1_previous"><a href="#"
-                                    aria-controls="example1" data-dt-idx="0" tabindex="0" class="page-link">Previous</a>
-                            </li>
-                            <li class="paginate_button page-item active"><a href="#" aria-controls="example1"
-                                    data-dt-idx="1" tabindex="0" class="page-link">1</a></li>
-                            <li class="paginate_button page-item "><a href="#" aria-controls="example1" data-dt-idx="2"
-                                    tabindex="0" class="page-link">2</a></li>
-                            <li class="paginate_button page-item "><a href="#" aria-controls="example1" data-dt-idx="3"
-                                    tabindex="0" class="page-link">3</a></li>
-                            <li class="paginate_button page-item "><a href="#" aria-controls="example1" data-dt-idx="4"
-                                    tabindex="0" class="page-link">4</a></li>
-                            <li class="paginate_button page-item "><a href="#" aria-controls="example1" data-dt-idx="5"
-                                    tabindex="0" class="page-link">5</a></li>
-                            <li class="paginate_button page-item "><a href="#" aria-controls="example1" data-dt-idx="6"
-                                    tabindex="0" class="page-link">6</a></li>
-                            <li class="paginate_button page-item next" id="example1_next"><a href="#"
-                                    aria-controls="example1" data-dt-idx="7" tabindex="0" class="page-link">Next</a>
-                            </li>
-                        </ul>
+                <div class="row" style="display: none;">
+                    <div class="col-sm-12 col-md-5">
+                        <div class="dataTables_info" id="example1_info" role="status" aria-live="polite">Showing 1 to 10 of
+                            57 entries</div>
+                    </div>
+                    <div class="col-sm-12 col-md-7">
+                        <div class="dataTables_paginate paging_simple_numbers float-right" id="example1_paginate">
+                            <ul class="pagination">
+                                <li class="paginate_button page-item previous disabled" id="example1_previous"><a href="#"
+                                        aria-controls="example1" data-dt-idx="0" tabindex="0" class="page-link">Previous</a>
+                                </li>
+                                <li class="paginate_button page-item active"><a href="#" aria-controls="example1"
+                                        data-dt-idx="1" tabindex="0" class="page-link">1</a></li>
+                                <li class="paginate_button page-item "><a href="#" aria-controls="example1" data-dt-idx="2"
+                                        tabindex="0" class="page-link">2</a></li>
+                                <li class="paginate_button page-item "><a href="#" aria-controls="example1" data-dt-idx="3"
+                                        tabindex="0" class="page-link">3</a></li>
+                                <li class="paginate_button page-item "><a href="#" aria-controls="example1" data-dt-idx="4"
+                                        tabindex="0" class="page-link">4</a></li>
+                                <li class="paginate_button page-item "><a href="#" aria-controls="example1" data-dt-idx="5"
+                                        tabindex="0" class="page-link">5</a></li>
+                                <li class="paginate_button page-item "><a href="#" aria-controls="example1" data-dt-idx="6"
+                                        tabindex="0" class="page-link">6</a></li>
+                                <li class="paginate_button page-item next" id="example1_next"><a href="#"
+                                        aria-controls="example1" data-dt-idx="7" tabindex="0" class="page-link">Next</a>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+        {% if expenses_count > 0 %}
+            <div class="card-footer">
+                <button type="button" class="btn btn-info float-right" id="" onclick="exportReportToExcel(this)">
+                    Xuất dưới dạng excel
+                </button>
+            </div>
+        {% endif %}    
+    {% endwith %}
 </div>
 <div class="card">
     <div class="card-header">
@@ -204,6 +215,16 @@
 
 {% block page_script %}
 <script>
+    function exportReportToExcel() {
+        // let table = document.getElementsByID("example1");
+        const table = $('#example1');
+        TableToExcel.convert(table[0], {
+            name: `file.xlsx`,
+            sheet: {
+                name: 'Sheet 1'
+            }
+        });
+    }
     function validateRequiredField(fieldList = []) {
         let isValid = true;
         fieldList.forEach(field => {
@@ -225,6 +246,49 @@
             locale: {
                 format: 'DD/MM/YYYY'
             }
+        });
+        $('#excelInput').on('change', function () {
+            const file = $(this)[0].files[0];
+            if (file.type !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && file.type !== 'application/vnd.ms-excel') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi',
+                    text: 'File không đúng định dạng',
+                });
+                return;
+            }
+            const formData = new FormData();
+            formData.append('excel', file);
+            $(this).val('');
+            fetch('/expense/add/excel/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: formData
+            }).then(response => {
+                return response.json();
+            }).then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Thành công',
+                        text: 'Thêm thành công ' + data.success_count + ' bản ghi, ' + data.error_count + ' bản ghi lỗi',
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lỗi',
+                        text: 'Có lỗi xảy ra, vui lòng thử lại sau',
+                    });
+                }
+            });
+        });
+
+        $('#addFromExcel').click(function () {
+            $('#excelInput').click();
         });
 
         $('#amount').keypress(function (event) {

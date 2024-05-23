@@ -3,6 +3,7 @@ from django.http import JsonResponse, HttpResponseRedirect, HttpResponseBadReque
 from django.db.models import Q, Sum
 from ..models import IncomeType, Income
 from datetime import date, timedelta
+import pandas as pd
 
 def income(request):
     user = request.user
@@ -24,6 +25,7 @@ def income(request):
         else:
             types = list(map(int, types_str.split(',')))
         income_types = IncomeType.objects.filter(user=user)
+        print(income_types)
         if len(types) > 0:
             incomes = Income.objects.filter(
                 user=user,
@@ -72,6 +74,32 @@ def income_add(request):
         income = Income(user=user, amount=amount, income_type=income_type, date=date_val, description=description)
         income.save()
         return JsonResponse({'status': 'success'})
+
+def income_add_excel(request):
+    user = request.user
+    if request.method == 'POST':
+        excel_file = request.FILES['excel']
+        df = pd.read_excel(excel_file)
+        error_count = 0
+        success_count = 0
+        for index, row in df.iterrows():
+            try:
+                amount = float(str(row['Thu nhập']).replace(',', '').replace('.', ''))
+                type_name = row['Loại']
+                date_str = row['Thời gian'].split('-')
+                date_val = date(int(date_str[2]), int(date_str[1]), int(date_str[0]))
+                description = row['Mô tả'] if type(row['Mô tả']) is str else ''
+                income_type = IncomeType.objects.filter(user=user, name=type_name).first()
+                if not income_type:
+                    income_type = IncomeType(user=user, name=type_name, description='')
+                    income_type.save()
+                income = Income(user=user, amount=amount, income_type=income_type, date=date_val, description=description)
+                income.save()
+                success_count += 1
+            except:
+                error_count += 1
+                continue
+        return JsonResponse({'status': 'success', 'error_count': error_count, 'success_count': success_count})
 
 def income_edit(request):
     user = request.user
