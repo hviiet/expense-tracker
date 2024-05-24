@@ -84,8 +84,14 @@ def expense_add_excel(request):
             try:
                 amount = float(str(row['Chi tiêu']).replace(',', '').replace('.', ''))
                 type_name = row['Loại']
-                date_str = row['Thời gian'].split('-')
-                date_val = date(int(date_str[2]), int(date_str[1]), int(date_str[0]))
+                date_str = row['Thời gian']
+                if type(date_str) is str:
+                    date_str = date_str.split('/')
+                    date_val = date(int(date_str[2]), int(date_str[1]), int(date_str[0]))
+                elif type(date_str) is pd.Timestamp:
+                    date_val = date(date_str.year, date_str.month, date_str.day)
+                else:
+                    raise Exception('Invalid date format')
                 description = row['Mô tả'] if type(row['Mô tả']) is str else ''
                 expense_type = ExpenseType.objects.filter(user=user, name=type_name).first()
                 if not expense_type:
@@ -94,7 +100,8 @@ def expense_add_excel(request):
                 income = Expense(user=user, amount=amount, expense_type=expense_type, date=date_val, description=description)
                 income.save()
                 success_count += 1
-            except:
+            except Exception as e:
+                print(e)
                 error_count += 1
                 continue
         return JsonResponse({'status': 'success', 'error_count': error_count, 'success_count': success_count})
